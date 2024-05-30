@@ -44,7 +44,7 @@ public func liveInstances<T: AnyObject>(for `class`: T.Type) -> WeakHashTable<T>
         )
 
         lock(zonePointer)
-        let result = enumerator(
+        let _ = enumerator(
             TASK_NULL,
             unsafeBitCast(callback, to: UnsafeMutableRawPointer.self),
             numericCast(MALLOC_PTR_IN_USE_RANGE_TYPE),
@@ -54,7 +54,7 @@ public func liveInstances<T: AnyObject>(for `class`: T.Type) -> WeakHashTable<T>
         )
         unlock(zonePointer)
 
-        print(result == KERN_SUCCESS)
+//        debugPrint(result == KERN_SUCCESS)
     }
 
     return table

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <objc/runtime.h>
 
 /// https://github.com/apple-oss-distributions/objc4/blob/01edf1705fbc3ff78a423cd21e03dfc21eb4d780/runtime/objc-internal.h#L568C1-L575C7
 #if __arm64__
@@ -114,6 +115,13 @@ _objc_cls(const void * _Nullable ptr)
         }
     }
     return 0;
+}
+
+static uintptr_t
+_objc_super(Class _Nonnull cls)
+{
+    Class superCls = class_getSuperclass(cls);
+    return (uintptr_t)superCls;
 }
 
 #endif /* objc_internal_h */

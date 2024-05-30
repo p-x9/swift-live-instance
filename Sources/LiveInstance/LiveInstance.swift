@@ -192,7 +192,15 @@ func isSubClass(_ target: AnyClass, of superClass: AnyClass) -> Bool {
         if _current == superClass {
             return true
         }
-        current = class_getSuperclass(_current)
+
+        // check if super class is readable
+        let new = _objc_super(_current)
+        guard new != 0,
+              let ptr = UnsafeRawPointer(bitPattern: new),
+              isReadablePointer(ptr) else {
+            break
+        }
+        current = unsafeBitCast(ptr, to: AnyClass.self)
     }
     return false
 }

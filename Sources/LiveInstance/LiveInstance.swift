@@ -30,6 +30,8 @@ public func liveInstances<T: AnyObject>(for `class`: T.Type) -> WeakHashTable<T>
 
         guard let lock = introspect.force_lock,
               let unlock = introspect.force_unlock,
+              isReadablePointer(unsafeBitCast(lock, to: UnsafeRawPointer.self)),
+              isReadablePointer(unsafeBitCast(unlock, to: UnsafeRawPointer.self)),
               let enumerator = introspect.enumerator else {
             continue
         }
@@ -85,8 +87,8 @@ var rangeCallback: @convention(c) (task_t, UnsafeMutableRawPointer?, UInt32, Uns
         let cls: AnyClass = unsafeBitCast(clsPtr, to: AnyClass.self)
 
         if validate(ptr),
-           malloc_size(ptr) >= class_getInstanceSize(cls),
-           uintptr_t(bitPattern: callback.class) == classAddress || isSubClass(cls, of: callback.targetClass) {
+           uintptr_t(bitPattern: callback.class) == classAddress || isSubClass(cls, of: callback.targetClass),
+           malloc_size(ptr) >= class_getInstanceSize(cls) {
             let unmanaged = Unmanaged<AnyObject>.fromOpaque(ptr)
             callback.callback(unmanaged.takeUnretainedValue())
         }
@@ -109,6 +111,72 @@ func validate(_ ptr: UnsafeRawPointer) -> Bool {
     if (pointer & 0xFFFF800000000000) != 0 {
         return false
     }
+
+    if !isReadablePointer(ptr) {
+        return false
+    }
+
+    if _objc_cls(ptr) == 0 {
+        return false
+    }
+
+    return true
+}
+
+func isReadablePointer(_ ptr: UnsafeRawPointer) -> Bool {
+    var address: vm_address_t
+    var vmsize: vm_size_t = 0
+    var info = vm_region_basic_info_64()
+
+    let VM_REGION_BASIC_INFO_COUNT_64 = MemoryLayout<vm_region_basic_info_64>.size / MemoryLayout<UInt32>.size
+    var infoCount = mach_msg_type_number_t(VM_REGION_BASIC_INFO_COUNT_64)
+    var object: memory_object_name_t = 0
+
+#if _ptrauth(_arm64e)
+    address = vm_address_t(UInt(bitPattern: __ptrauth_strip_function_pointer(ptr)))
+#else
+    address = vm_address_t(UInt(bitPattern: ptr))
+#endif
+
+    let error = withUnsafeMutablePointer(to: &info) { infoPtr in
+        infoPtr.withMemoryRebound(to: Int32.self, capacity: Int(infoCount)) {
+            vm_region_64(
+                mach_task_self_,
+                &address,
+                &vmsize,
+                VM_REGION_BASIC_INFO_64,
+                $0,
+                &infoCount,
+                &object
+            )
+        }
+    }
+
+    if error != KERN_SUCCESS || (info.protection & VM_PROT_READ) == 0 {
+        return false
+    }
+
+#if _ptrauth(_arm64e)
+    address = vm_address_t(UInt(bitPattern: __ptrauth_strip_function_pointer(ptr)))
+#else
+    address = vm_address_t(UInt(bitPattern: ptr))
+#endif
+
+    let buf = [UInt8](repeating: 0, count: MemoryLayout<vm_address_t>.size)
+    var size = vm_size_t(0)
+
+    let readError = vm_read_overwrite(
+        mach_task_self_,
+        address,
+        vm_size_t(buf.count),
+        buf.withUnsafeBufferPointer { vm_address_t(bitPattern: $0.baseAddress!) },
+        &size
+    )
+
+    if readError != KERN_SUCCESS {
+        return false
+    }
+
     return true
 }
 

@@ -12,7 +12,13 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "LiveInstance"
+            name: "LiveInstance",
+            dependencies: [
+                "LiveInstanceC"
+            ]
+        ),
+        .target(
+            name: "LiveInstanceC"
         ),
         .testTarget(
             name: "LiveInstanceTests",

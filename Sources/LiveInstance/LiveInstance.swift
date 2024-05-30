@@ -123,6 +123,8 @@ func validate(_ ptr: UnsafeRawPointer) -> Bool {
     return true
 }
 
+// ref: https://github.com/FLEXTool/FLEX/blob/1b983160cc188aff18284c1d990121cdb1e42e9c/Classes/Utility/Runtime/Objc/FLEXObjcInternal.mm#L78
+// ref: https://blog.timac.org/2016/1124-testing-if-an-arbitrary-pointer-is-a-valid-objective-c-object/
 func isReadablePointer(_ ptr: UnsafeRawPointer) -> Bool {
     var address: vm_address_t
     var vmsize: vm_size_t = 0

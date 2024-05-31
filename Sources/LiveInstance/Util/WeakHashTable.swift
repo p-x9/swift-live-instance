@@ -11,14 +11,14 @@ import Foundation
 ///
 /// Holds multiple objects by weak reference.
 /// Internally, NSHashTable is used.
-public class WeakHashTable<T> {
+public class WeakHashTable<T: AnyObject> {
 
     /// List of objects held with weak reference
     public var objects: [T] {
-        accessQueue.sync { _objects.allObjects.compactMap { $0 as? T } }
+        accessQueue.sync { _objects.allObjects }
     }
 
-    private var _objects: NSHashTable<AnyObject> = NSHashTable.weakObjects()
+    private var _objects: NSHashTable<T> = NSHashTable.weakObjects()
     private let accessQueue: DispatchQueue = .init(
         label:"com.github.p-x9.liveInstance.WeakHashTable.\(T.self)",
         attributes: .concurrent
@@ -32,7 +32,7 @@ public class WeakHashTable<T> {
     /// - Parameter objects: initial value of object list
     public init(_ objects: [T]) {
         for object in objects {
-            _objects.add(object as AnyObject)
+            _objects.add(object)
         }
     }
 
@@ -40,7 +40,7 @@ public class WeakHashTable<T> {
     /// - Parameter object: Objects to be added
     public func add(_ object: T?) {
         accessQueue.sync(flags: .barrier) {
-            _objects.add(object as AnyObject)
+            _objects.add(object)
         }
     }
 
@@ -48,7 +48,7 @@ public class WeakHashTable<T> {
     /// - Parameter object: Objects to be deleted.
     public func remove(_ object: T?) {
         accessQueue.sync(flags: .barrier) {
-            _objects.remove(object as AnyObject)
+            _objects.remove(object)
         }
     }
 }

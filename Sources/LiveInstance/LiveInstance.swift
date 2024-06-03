@@ -1,7 +1,7 @@
 import Foundation
 import LiveInstanceC
 
-public func liveInstances<T: AnyObject>(for `class`: T.Type) -> WeakHashTable<T> {
+public func liveInstances<T: AnyObject>(of `class`: T.Type) -> WeakHashTable<T> {
     let table = WeakHashTable<T>()
 
     /* Get All Zones */
